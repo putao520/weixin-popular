@@ -3,6 +3,9 @@ package weixin.popular.bean.paymch;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
+import weixin.popular.bean.AdaptorCDATA;
 
 @XmlRootElement(name="xml")
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -16,6 +19,7 @@ public class PapayQuerycontractResult extends MchBase{
 
 	private String contract_code;
 
+	@XmlJavaTypeAdapter(value = AdaptorCDATA.class)
 	private String contract_display_account;
 
 	private Integer contract_state;
@@ -28,6 +32,7 @@ public class PapayQuerycontractResult extends MchBase{
 
 	private String contract_termination_mode;
 
+	@XmlJavaTypeAdapter(value = AdaptorCDATA.class)
 	private String contract_termination_remark;
 
 	private String openid;

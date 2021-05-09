@@ -12,7 +12,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MapUtil {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public abstract class MapUtil {
+	
+	private static Logger logger = LoggerFactory.getLogger(MapUtil.class);
 
 	/**
 	 * Map key 排序
@@ -65,32 +70,14 @@ public class MapUtil {
 				try {
 					o = f.get(object);
 				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
+					logger.error("", e);
 				} catch (IllegalAccessException e) {
-					e.printStackTrace();
+					logger.error("", e);
 				}
 				tempMap.put(f.getName(), o==null?"":o.toString());
 			}
 		}
 		return tempMap;
-	}
-
-	/**
-	 * 获取所有Fields,包含父类field
-	 * @param clazz clazz
-	 * @return list
-	 */
-	private static List<Field> getAllFields(Class<?> clazz){
-		if(!clazz.equals(Object.class)){
-			List<Field> fields = new ArrayList<Field>(Arrays.asList(clazz.getDeclaredFields()));
-			List<Field> fields2 = getAllFields(clazz.getSuperclass());
-			if(fields2!=null){
-				fields.addAll(fields2);
-			}
-			return fields;
-		}else{
-			return null;
-		}
 	}
 
 	/**
@@ -111,7 +98,7 @@ public class MapUtil {
 								 .append(valueUrlencode?URLEncoder.encode(map.get(key),"utf-8").replace("+", "%20"):map.get(key))
 								 .append("&");
 				} catch (UnsupportedEncodingException e) {
-					e.printStackTrace();
+					logger.error("", e);
 				}
 			}
 		}
@@ -119,6 +106,24 @@ public class MapUtil {
 			stringBuilder.deleteCharAt(stringBuilder.length()-1);
 		}
 		return stringBuilder.toString();
+	}
+
+	/**
+	 * 获取所有Fields,包含父类field
+	 * @param clazz clazz
+	 * @return list
+	 */
+	private static List<Field> getAllFields(Class<?> clazz){
+		if(!clazz.equals(Object.class)){
+			List<Field> fields = new ArrayList<Field>(Arrays.asList(clazz.getDeclaredFields()));
+			List<Field> fields2 = getAllFields(clazz.getSuperclass());
+			if(fields2!=null){
+				fields.addAll(fields2);
+			}
+			return fields;
+		}else{
+			return null;
+		}
 	}
 
 }

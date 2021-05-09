@@ -1,12 +1,15 @@
 package weixin.popular.bean.xmlmessage;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import weixin.popular.bean.message.message.Message;
 import weixin.popular.bean.message.message.NewsMessage;
 
 public class XMLNewsMessage extends XMLMessage {
+
+	private static final long serialVersionUID = -3297287142409782906L;
 
 	private List<Article> articles;
 
@@ -21,6 +24,20 @@ public class XMLNewsMessage extends XMLMessage {
 	public XMLNewsMessage(String toUserName, String fromUserName, List<Article> articles) {
 		super(toUserName, fromUserName, "news");
 		this.articles = articles;
+	}
+	
+	/**
+	 * @since 2.8.26           
+	 * @param toUserName
+	 *            toUserName
+	 * @param fromUserName
+	 *            fromUserName
+	 * @param article
+	 *            article
+	 */
+	public XMLNewsMessage(String toUserName, String fromUserName, Article article) {
+		super(toUserName, fromUserName, "news");
+		this.articles = Collections.singletonList(article);
 	}
 
 	@Override

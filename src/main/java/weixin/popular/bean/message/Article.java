@@ -12,6 +12,8 @@ public class Article {
 	private String thumb_media_id;//图文消息的封面图片素材id
 
 	private String show_cover_pic;//是否显示封面，0为false，即不显示，1为true，即显示
+	
+	private String thumb_url;	//封面图片地址
 
 	private String author;
 
@@ -22,7 +24,12 @@ public class Article {
 	private String url;	//图文页的URL(高级群发不可用外链)
 	
 	private String content_source_url; 	//图文消息的原文地址，即点击“阅读原文”后的URL
+	
+	private Integer need_open_comment;	//是否打开评论，0不打开，1打开
+	
+	private Integer only_fans_can_comment;	//是否粉丝才可评论，0所有人可评论，1粉丝才可评论
 
+	
 	public String getTitle() {
 		return title;
 	}
@@ -87,4 +94,28 @@ public class Article {
 		this.content_source_url = content_source_url;
 	}
 
+	public Integer getNeed_open_comment() {
+		return need_open_comment;
+	}
+
+	public void setNeed_open_comment(Integer need_open_comment) {
+		this.need_open_comment = need_open_comment;
+	}
+
+	public Integer getOnly_fans_can_comment() {
+		return only_fans_can_comment;
+	}
+
+	public void setOnly_fans_can_comment(Integer only_fans_can_comment) {
+		this.only_fans_can_comment = only_fans_can_comment;
+	}
+
+	public String getThumb_url() {
+		return thumb_url;
+	}
+
+	public void setThumb_url(String thumb_url) {
+		this.thumb_url = thumb_url;
+	}
+	
 }

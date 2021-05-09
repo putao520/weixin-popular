@@ -23,7 +23,7 @@ import weixin.popular.util.JsonUtil;
 
 /**
  * User API
- * @author Administrator
+ * @author LiYi
  *
  */
 public class UserAPI extends BaseAPI{
@@ -354,7 +354,7 @@ public class UserAPI extends BaseAPI{
 	 */
 	public static UserTagGetResult userTagGet(String access_token,Integer tagid,String next_openid){
 		String json = String.format("{\"tagid\":%d,\"next_openid\":\"%s\"}",tagid,next_openid==null?"":next_openid);
-		HttpUriRequest httpUriRequest = RequestBuilder.get()
+		HttpUriRequest httpUriRequest = RequestBuilder.post()
 										.setHeader(jsonHeader)
 										.setUri(BASE_URI+"/cgi-bin/user/tag/get")
 										.addParameter(PARAM_ACCESS_TOKEN, API.accessToken(access_token))
@@ -365,7 +365,7 @@ public class UserAPI extends BaseAPI{
 	
 	/**
 	 * 用户管理 批量为用户打标签<br>
-	 * 标签功能目前支持公众号为用户打上最多三个标签。
+	 * 标签功能目前支持公众号为用户打上最多20个标签。
 	 * @since 2.8.1
 	 * @param access_token access_token
 	 * @param tagid	tagid
@@ -395,7 +395,7 @@ public class UserAPI extends BaseAPI{
 		String json = String.format("{\"tagid\":%d,\"openid_list\":%s}",tagid,JsonUtil.toJSONString(openids));
 		HttpUriRequest httpUriRequest = RequestBuilder.post()
 										.setHeader(jsonHeader)
-										.setUri(BASE_URI+"/cgi-bin/tags/members/batchtagging")
+										.setUri(BASE_URI+"/cgi-bin/tags/members/batchuntagging")
 										.addParameter(PARAM_ACCESS_TOKEN, API.accessToken(access_token))
 										.setEntity(new StringEntity(json,Charset.forName("utf-8")))
 										.build();

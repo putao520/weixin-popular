@@ -13,6 +13,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 
 import org.apache.http.HttpEntityEnclosingRequest;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.client.HttpRequestRetryHandler;
 import org.apache.http.client.protocol.HttpClientContext;
@@ -24,6 +25,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * httpclient 4.3.x
@@ -32,10 +35,23 @@ import org.apache.http.protocol.HttpContext;
  */
 public class HttpClientFactory{
 	
+	private static Logger logger = LoggerFactory.getLogger(HttpClientFactory.class);
+	
 	private static final String[] supportedProtocols = new String[]{"TLSv1"};
+	
+	private static HttpHost proxy;
 	
 	public static CloseableHttpClient createHttpClient() {
 		return createHttpClient(100,10,5000,2);
+	}
+	
+	/**
+	 * 设置代理
+	 * @since 2.8.29
+	 * @param proxy 代理
+	 */
+	public static void setProxy(HttpHost proxy){
+		HttpClientFactory.proxy = proxy;
 	}
 
 	/**
@@ -55,15 +71,18 @@ public class HttpClientFactory{
 			poolingHttpClientConnectionManager.setDefaultMaxPerRoute(maxPerRoute);
 			SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(timeout).build();
 			poolingHttpClientConnectionManager.setDefaultSocketConfig(socketConfig);
-			return HttpClientBuilder.create()
-									.setConnectionManager(poolingHttpClientConnectionManager)
-									.setSSLSocketFactory(sf)
-									.setRetryHandler(new HttpRequestRetryHandlerImpl(retryExecutionCount))
-									.build();
+			HttpClientBuilder builder = HttpClientBuilder.create();
+			if(proxy != null){
+				builder.setProxy(proxy);
+			}
+			return builder.setConnectionManager(poolingHttpClientConnectionManager)
+						  .setSSLSocketFactory(sf)
+						  .setRetryHandler(new HttpRequestRetryHandlerImpl(retryExecutionCount))
+						  .build();
 		} catch (KeyManagementException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		}
 		return null;
 	}
@@ -95,19 +114,22 @@ public class HttpClientFactory{
 			SSLConnectionSocketFactory sf = new SSLConnectionSocketFactory(sslContext,supportedProtocols,
 	                null,SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
 			SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(timeout).build();
-			return HttpClientBuilder.create()
-									.setDefaultSocketConfig(socketConfig)
-									.setSSLSocketFactory(sf)
-									.setRetryHandler(new HttpRequestRetryHandlerImpl(retryExecutionCount))
-									.build();
+			HttpClientBuilder builder = HttpClientBuilder.create();
+			if(proxy != null){
+				builder.setProxy(proxy);
+			}
+			return builder.setDefaultSocketConfig(socketConfig)
+						  .setSSLSocketFactory(sf)
+						  .setRetryHandler(new HttpRequestRetryHandlerImpl(retryExecutionCount))
+						  .build();
 		} catch (KeyManagementException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		} catch (UnrecoverableKeyException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		} catch (KeyStoreException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		}
 		return null;
 	}

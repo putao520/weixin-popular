@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.http.HttpEntity;
@@ -14,18 +16,24 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import weixin.popular.bean.media.Media;
 import weixin.popular.bean.media.MediaGetResult;
 import weixin.popular.bean.media.MediaType;
 import weixin.popular.bean.media.UploadimgResult;
+import weixin.popular.bean.message.Article;
+import weixin.popular.bean.message.Uploadvideo;
 import weixin.popular.client.BytesOrJsonResponseHandler;
 import weixin.popular.client.LocalHttpClient;
+import weixin.popular.util.JsonUtil;
 import weixin.popular.util.StreamUtils;
 
 /**
@@ -34,6 +42,8 @@ import weixin.popular.util.StreamUtils;
  *
  */
 public class MediaAPI extends BaseAPI{
+	
+	private static Logger logger = LoggerFactory.getLogger(MediaAPI.class);
 
 	/**
 	 * 新增临时素材
@@ -77,7 +87,7 @@ public class MediaAPI extends BaseAPI{
 		try {
 			data = StreamUtils.copyToByteArray(inputStream);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		}
 		HttpEntity reqEntity = MultipartEntityBuilder.create()
 				 .addBinaryBody("media",data,ContentType.DEFAULT_BINARY,"temp."+mediaType.fileSuffix())
@@ -114,18 +124,18 @@ public class MediaAPI extends BaseAPI{
 			httpPost.setEntity(reqEntity);
 			return LocalHttpClient.executeJsonResult(httpPost,Media.class);
 		} catch (UnsupportedCharsetException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		} catch (ClientProtocolException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		} catch (ParseException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		} finally{
 			try {
 				tempHttpClient.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error("", e);
 			}
 		}
 		return null;
@@ -212,7 +222,7 @@ public class MediaAPI extends BaseAPI{
 		try {
 			data = StreamUtils.copyToByteArray(inputStream);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		}
 		HttpEntity reqEntity = MultipartEntityBuilder.create()
 				 .addBinaryBody("media",data,ContentType.DEFAULT_BINARY,"temp.jpg")
@@ -241,22 +251,62 @@ public class MediaAPI extends BaseAPI{
 			         .build();
 			httpPost.setEntity(reqEntity);
 			return LocalHttpClient.executeJsonResult(httpPost,UploadimgResult.class);
-		} catch (UnsupportedCharsetException e) {
-			e.printStackTrace();
-		} catch (ClientProtocolException e) {
-			e.printStackTrace();
-		} catch (ParseException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (Exception e) {
+			logger.error("", e);
 		} finally{
 			try {
 				tempHttpClient.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+			} catch (Exception e) {
+				logger.error("", e);
 			}
 		}
 		return null;
+	}
+	
+	/**
+	 * 高级群发 构成 MassMPnewsMessage 对象的前置请求接口
+	 * @param access_token access_token
+	 * @param articles 图文信息 1-10 个
+	 * @return Media
+	 */
+	public static Media mediaUploadnews(String access_token,List<Article> articles){
+		String str = JsonUtil.toJSONString(articles);
+		String messageJson = "{\"articles\":"+str+"}";
+		return mediaUploadnews(access_token, messageJson);
+	}
+	
+	/**
+	 * 高级群发 构成 MassMPnewsMessage 对象的前置请求接口
+	 * @param access_token access_token
+	 * @param messageJson messageJson
+	 * @return result
+	 */
+	public static Media mediaUploadnews(String access_token,String messageJson){
+		HttpUriRequest httpUriRequest = RequestBuilder.post()
+										.setHeader(jsonHeader)
+										.setUri(BASE_URI+"/cgi-bin/media/uploadnews")
+										.addParameter(PARAM_ACCESS_TOKEN, API.accessToken(access_token))
+										.setEntity(new StringEntity(messageJson,Charset.forName("utf-8")))
+										.build();
+		return LocalHttpClient.executeJsonResult(httpUriRequest,Media.class);
+	}
+
+	/**
+	 * 高级群发 构成 MassMPvideoMessage 对象的前置请求接口
+	 * @param access_token access_token
+	 * @param uploadvideo uploadvideo
+	 * @return Media
+	 */
+	public static Media mediaUploadvideo(String access_token,Uploadvideo uploadvideo){
+		String messageJson = JsonUtil.toJSONString(uploadvideo);
+		HttpUriRequest httpUriRequest = RequestBuilder.post()
+										.setHeader(jsonHeader)
+										//2.8.20 修改URI  原URI MEDIA_URI+"/cgi-bin/media/uploadvideo"
+										.setUri(BASE_URI+"/cgi-bin/media/uploadvideo")
+										.addParameter(PARAM_ACCESS_TOKEN, API.accessToken(access_token))
+										.setEntity(new StringEntity(messageJson,Charset.forName("utf-8")))
+										.build();
+		return LocalHttpClient.executeJsonResult(httpUriRequest,Media.class);
 	}
 	
 }

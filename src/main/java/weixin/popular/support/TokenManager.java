@@ -1,8 +1,7 @@
 package weixin.popular.support;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -26,13 +25,15 @@ public class TokenManager{
 	
 	private static ScheduledExecutorService scheduledExecutorService;
 
-	private static Map<String,String> tokenMap = new LinkedHashMap<String,String>();
+	private static Map<String,String> tokenMap = new ConcurrentHashMap<String,String>();
 
-	private static Map<String,ScheduledFuture<?>> futureMap = new HashMap<String, ScheduledFuture<?>>();
+	private static Map<String,ScheduledFuture<?>> futureMap = new ConcurrentHashMap<String, ScheduledFuture<?>>();
 
 	private static int poolSize = 2;
 	
 	private static boolean daemon = Boolean.TRUE;
+	
+	private static String firestAppid;
 
 	/**
 	 * 初始化 scheduledExecutorService
@@ -66,34 +67,56 @@ public class TokenManager{
 	public static void setDaemon(boolean daemon) {
 		TokenManager.daemon = daemon;
 	}
-
+	
 	/**
 	 * 初始化token 刷新，每118分钟刷新一次。
 	 * @param appid appid
 	 * @param secret secret
 	 */
 	public static void init(final String appid,final String secret){
+		init(appid, secret, 0, 60*118);
+	}
+
+	/**
+	 * 初始化token 刷新，每118分钟刷新一次。
+	 * @param appid appid
+	 * @param secret secret
+	 * @param initialDelay 首次执行延迟（秒）
+	 * @param delay 执行间隔（秒）
+	 */
+	public static void init(final String appid,final String secret,int initialDelay,int delay){
 		if(scheduledExecutorService == null){
 			initScheduledExecutorService();
+		}
+		if(firestAppid == null){
+			firestAppid = appid;
 		}
 		if(futureMap.containsKey(appid)){
 			futureMap.get(appid).cancel(true);
 		}
+		//立即执行一次
+		if(initialDelay == 0){
+			doRun(appid, secret);
+		}
 		ScheduledFuture<?> scheduledFuture =  scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
 			@Override
 			public void run() {
-				try {
-					Token token = TokenAPI.token(appid,secret);
-					tokenMap.put(appid,token.getAccess_token());
-					logger.info("ACCESS_TOKEN refurbish with appid:{}",appid);
-				} catch (Exception e) {
-					logger.error("ACCESS_TOKEN refurbish error with appid:{}",appid);
-					e.printStackTrace();
-				}
+				doRun(appid, secret);
 			}
-		},0,118,TimeUnit.MINUTES);
+		},initialDelay == 0 ? delay : initialDelay,delay,TimeUnit.SECONDS);
 		futureMap.put(appid, scheduledFuture);
 		logger.info("appid:{}",appid);
+	}
+	
+	private static void doRun(final String appid, final String secret) {
+		try {
+			Token token = TokenAPI.token(appid,secret);
+			tokenMap.put(appid,token.getAccess_token());
+			logger.info("ACCESS_TOKEN refurbish with appid:{}",appid);
+		} catch (Exception e) {
+			logger.error("ACCESS_TOKEN refurbish error with appid:{}",appid);
+			logger.error("", e);
+		}
 	}
 
 	/**
@@ -130,8 +153,7 @@ public class TokenManager{
 	 * @return token
 	 */
 	public static String getDefaultToken(){
-		Object[] objs = tokenMap.values().toArray();
-		return objs.length>0?objs[0].toString():null;
+		return tokenMap.get(firestAppid);
 	}
 
 }

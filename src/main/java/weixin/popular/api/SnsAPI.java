@@ -5,6 +5,8 @@ import java.net.URLEncoder;
 
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import weixin.popular.bean.BaseResult;
 import weixin.popular.bean.sns.Jscode2sessionResult;
@@ -20,6 +22,8 @@ import weixin.popular.util.EmojiUtil;
  */
 public class SnsAPI extends BaseAPI{
 
+	private static Logger logger = LoggerFactory.getLogger(SnsAPI.class);
+	
 	/**
 	 * 通过code换取网页授权access_token
 	 * @param appid appid
@@ -190,7 +194,7 @@ public class SnsAPI extends BaseAPI{
 			 sb.append("#wechat_redirect");
 			return sb.toString();
 		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		}
 		return null;
 	}
@@ -215,7 +219,7 @@ public class SnsAPI extends BaseAPI{
 			.append("#wechat_redirect");
 			return sb.toString();
 		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		}
 		return null;
 	}
@@ -238,5 +242,27 @@ public class SnsAPI extends BaseAPI{
 			.build();
 		return LocalHttpClient.executeJsonResult(httpUriRequest,Jscode2sessionResult.class);
 	}
+	
+	/**
+	 *
+	 * @since 2.8.9
+	 * @param appid appid
+	 * @param js_code js_code
+	 * @param component_appid component_appid
+	 * @param component_access_token component_access_token
+	 * @return result
+	 */
+	public static Jscode2sessionResult componentJscode2session(String appid,String js_code,String component_appid,String component_access_token){
+		HttpUriRequest httpUriRequest = RequestBuilder.get()
+			.setUri(BASE_URI + "/sns/component/jscode2session")
+			.addParameter("appid",appid)
+			.addParameter("js_code",js_code)
+			.addParameter("grant_type","authorization_code")
+			.addParameter("component_appid",component_appid)
+			.addParameter("component_access_token",API.componentAccessToken(component_access_token))
+			.build();
+		return LocalHttpClient.executeJsonResult(httpUriRequest,Jscode2sessionResult.class);
+	}
+	
 
 }

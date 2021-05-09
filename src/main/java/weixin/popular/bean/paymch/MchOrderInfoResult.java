@@ -1,65 +1,85 @@
 package weixin.popular.bean.paymch;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
+import weixin.popular.bean.DynamicField;
 
 @XmlRootElement(name="xml")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class MchOrderInfoResult extends MchBase{
+public class MchOrderInfoResult extends MchBase implements DynamicField{
 
-	@XmlElement
 	private String trade_state;
 
-	@XmlElement
 	private String device_info;
 
-	@XmlElement
 	private String openid;
 
-	@XmlElement
 	private String is_subscribe;
 
-	@XmlElement
 	private String trade_type;
 
-	@XmlElement
 	private String bank_type;
 
-	@XmlElement
 	private Integer total_fee;
 
-	@XmlElement
 	private String fee_type;
 
-	@XmlElement
 	private Integer cash_fee;
 
-	@XmlElement
 	private String cash_fee_type;
 
-	@XmlElement
 	private Integer coupon_fee;
 
-	@XmlElement
 	private Integer coupon_count;
 
-	@XmlElement
 	private String transaction_id;
 
-	@XmlElement
 	private String out_trade_no;
 
-	@XmlElement
 	private String attach;
 
-	@XmlElement
 	private String time_end;
 
-	@XmlElement
 	private String trade_state_desc;
+	
+	private String sub_openid;
+	
+	private String sub_is_subscribe;
+	
+	private Integer settlement_total_fee;
+	
+	
+	/** 代金券或立减优惠
+	 * @since 2.8.12
+	 * 使用  getCoupons() 获取 List.
+	 * List.size() = coupon_count
+	 */
+	@XmlTransient
+	private List<Coupon> coupons;
 
+	/**
+	 * 单品优惠 ,请求参数 version=1.0
+	 * @since 2.8.12
+	 */
+	@XmlElement
+	@XmlJavaTypeAdapter(value = PromotionDetailXmlAdapter.class)
+	private List<PromotionDetail> promotion_detail;
+	
+	/**
+	 * 委托代扣协议id
+	 * @since 2.8.24
+	 */
+	private String contract_id;
+	
 	public String getTrade_state() {
 		return trade_state;
 	}
@@ -196,5 +216,72 @@ public class MchOrderInfoResult extends MchBase{
 		this.trade_state_desc = trade_state_desc;
 	}
 
+	public String getSub_is_subscribe() {
+		return sub_is_subscribe;
+	}
+
+	public void setSub_is_subscribe(String sub_is_subscribe) {
+		this.sub_is_subscribe = sub_is_subscribe;
+	}
+
+	public String getSub_openid() {
+		return sub_openid;
+	}
+
+	public void setSub_openid(String sub_openid) {
+		this.sub_openid = sub_openid;
+	}
+	
+	public Integer getSettlement_total_fee() {
+		return settlement_total_fee;
+	}
+
+	public void setSettlement_total_fee(Integer settlement_total_fee) {
+		this.settlement_total_fee = settlement_total_fee;
+	}
+
+	public List<Coupon> getCoupons() {
+		return coupons;
+	}
+
+	public void setCoupons(List<Coupon> coupons) {
+		this.coupons = coupons;
+	}
+
+	public List<PromotionDetail> getPromotion_detail() {
+		return promotion_detail;
+	}
+
+	public void setPromotion_detail(List<PromotionDetail> promotion_detail) {
+		this.promotion_detail = promotion_detail;
+	}
+	
+	public String getContract_id() {
+		return contract_id;
+	}
+
+	public void setContract_id(String contract_id) {
+		this.contract_id = contract_id;
+	}
+
+	@Override
+	public void buildDynamicField(Map<String, String> dataMap) {
+		if(dataMap != null){
+			String coupon_countStr = dataMap.get("coupon_count");
+			if(coupon_countStr != null){
+				List<Coupon> list = new ArrayList<Coupon>();
+				for (int i = 0; i < Integer.parseInt(coupon_countStr); i++) {
+					Coupon coupon = new Coupon(
+							dataMap.get("coupon_type_"+i),
+							dataMap.get("coupon_id_"+i),
+							Integer.parseInt(dataMap.get("coupon_fee_"+i)), 
+							i);
+					list.add(coupon);
+				}
+				this.coupons = list;
+			}
+			
+		}
+	}
 
 }

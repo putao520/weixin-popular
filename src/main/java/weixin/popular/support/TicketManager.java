@@ -1,8 +1,7 @@
 package weixin.popular.support;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -26,13 +25,15 @@ public class TicketManager {
 
 	private static ScheduledExecutorService scheduledExecutorService;
 
-	private static Map<String,String> ticketMap = new LinkedHashMap<String,String>();
+	private static Map<String,String> ticketMap = new ConcurrentHashMap<String,String>();
 
-	private static Map<String,ScheduledFuture<?>> futureMap = new HashMap<String, ScheduledFuture<?>>();
+	private static Map<String,ScheduledFuture<?>> futureMap = new ConcurrentHashMap<String, ScheduledFuture<?>>();
 
 	private static int poolSize = 2;
 	
 	private static boolean daemon = Boolean.TRUE;
+	
+	private static String firestAppid;
 	
 	private static final String KEY_JOIN = "__";
 	
@@ -82,7 +83,7 @@ public class TicketManager {
 	 * 初始化ticket 刷新，每119分钟刷新一次。<br>
 	 * 依赖TokenManager
 	 * @since 2.8.2 
-	 * @param appid
+	 * @param appid appid
 	 * @param types [jsapi,wx_card]
 	 */
 	public static void init(final String appid,String types){
@@ -111,6 +112,9 @@ public class TicketManager {
 	 * @param types ticket 类型  [jsapi,wx_card]
 	 */
 	public static void init(final String appid,int initialDelay,int delay,String... types){
+		if(firestAppid == null){
+			firestAppid = appid;
+		}
 		for(final String type : types){
 			final String key = appid + KEY_JOIN + type;
 			if(scheduledExecutorService == null){
@@ -119,21 +123,29 @@ public class TicketManager {
 			if(futureMap.containsKey(key)){
 				futureMap.get(key).cancel(true);
 			}
+			//立即执行一次
+			if(initialDelay == 0){
+				doRun(appid, type, key);
+			}
 			ScheduledFuture<?> scheduledFuture =  scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
 				@Override
 				public void run() {
-					try {
-						String access_token = TokenManager.getToken(appid);
-						Ticket ticket = TicketAPI.ticketGetticket(access_token,type);
-						ticketMap.put(key,ticket.getTicket());
-						logger.info("TICKET refurbish with appid:{} type:{}",appid,type);
-					} catch (Exception e) {
-						logger.error("TICKET refurbish error with appid:{} type:{}",appid,type);
-						e.printStackTrace();
-					}
+					doRun(appid, type, key);
 				}
-			},initialDelay,delay,TimeUnit.SECONDS);
+			},initialDelay == 0 ? delay : initialDelay,delay,TimeUnit.SECONDS);
 			futureMap.put(key,scheduledFuture);
+		}
+	}
+	
+	private static void doRun(final String appid, final String type, final String key) {
+		try {
+			String access_token = TokenManager.getToken(appid);
+			Ticket ticket = TicketAPI.ticketGetticket(access_token,type);
+			ticketMap.put(key,ticket.getTicket());
+			logger.info("TICKET refurbish with appid:{} type:{}",appid,type);
+		} catch (Exception e) {
+			logger.error("TICKET refurbish error with appid:{} type:{}",appid,type);
+			logger.error("", e);
 		}
 	}
 
@@ -180,9 +192,9 @@ public class TicketManager {
 	
 	/**
 	 * 获取 ticket
-	 * @param appid
+	 * @param appid appid
 	 * @param type jsapi or wx_card
-	 * @return
+	 * @return ticket
 	 */
 	public static String getTicket(final String appid,String type){
 		return ticketMap.get(appid + KEY_JOIN + type);
@@ -195,8 +207,7 @@ public class TicketManager {
 	 * @return ticket
 	 */
 	public static String getDefaultTicket(){
-		Object[] objs = ticketMap.values().toArray();
-		return objs.length>0?objs[0].toString():null;
+		return ticketMap.get(firestAppid);
 	}
 
 }

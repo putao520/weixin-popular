@@ -12,6 +12,8 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import weixin.popular.bean.qrcode.QrcodeTicket;
 import weixin.popular.bean.qrcode.Wxaqrcode;
@@ -25,6 +27,7 @@ import weixin.popular.util.JsonUtil;
  */
 public class QrcodeAPI extends BaseAPI{
 
+	private static Logger logger = LoggerFactory.getLogger(QrcodeAPI.class);
 
 	/**
 	 * 创建二维码
@@ -55,6 +58,19 @@ public class QrcodeAPI extends BaseAPI{
 	}
 
 	/**
+	 * 创建带参数的临时二维码
+	 * 具体信息可以查看<a href="https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1443433542">微信公众号文档</a>
+	 * @param access_token access_token
+	 * @param expire_seconds 最大不超过604800秒（即30天）
+	 * @param scene_str		 场景值ID（字符串形式的ID），字符串类型，长度限制为1到64
+	 * @return QrcodeTicket
+	 */
+	public static QrcodeTicket qrcodeCreateTemp(String access_token,int expire_seconds,String scene_str){
+		String json = String.format("{\"expire_seconds\": %d, \"action_name\": \"QR_STR_SCENE\", \"action_info\": {\"scene\": {\"scene_str\": \"%s\"}}}", expire_seconds, scene_str);
+		return qrcodeCreate(access_token,json);
+	}
+
+	/**
 	 * 创建持久二维码
 	 * @param access_token access_token
 	 * @param scene_id	场景值ID 1-100000
@@ -64,7 +80,7 @@ public class QrcodeAPI extends BaseAPI{
 		String json = String.format("{\"action_name\": \"QR_LIMIT_SCENE\", \"action_info\": {\"scene\": {\"scene_id\":%d}}}", scene_id);
 		return qrcodeCreate(access_token,json);
 	}
-	
+
 	/**
 	 * 创建持久二维码
 	 * @param access_token access_token
@@ -87,32 +103,18 @@ public class QrcodeAPI extends BaseAPI{
 				.addParameter("ticket", ticket)
 				.build();
 		CloseableHttpResponse httpResponse = LocalHttpClient.execute(httpUriRequest);
-		try {
-			int status = httpResponse.getStatusLine().getStatusCode();
-            if (status == 200) {
-				byte[] bytes = EntityUtils.toByteArray(httpResponse.getEntity());
-				return ImageIO.read(new ByteArrayInputStream(bytes));
-            }
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				httpResponse.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		return null;
+		return getImage(httpResponse);
 	}
-	
+
 	/**
-	 * 获取小程序页面二维码 (beta)
-	 * @since 2.8.5
+	 * 获取小程序页面二维码 <br>
+	 * 小程序码使用 使用 WxaAPI.getwxacode　或　WxaAPI.getwxacodeunlimit
+	 * @since 2.8.8
 	 * @param access_token access_token
 	 * @param wxaqrcode wxaqrcode
-	 * @return result
+	 * @return BufferedImage
 	 */
-	public static QrcodeTicket wxaappCreatewxaqrcode(String access_token,Wxaqrcode wxaqrcode){
+	public static BufferedImage wxaappCreatewxaqrcode(String access_token,Wxaqrcode wxaqrcode){
 		String json = JsonUtil.toJSONString(wxaqrcode);
 		HttpUriRequest httpUriRequest = RequestBuilder.post()
 								.setHeader(jsonHeader)
@@ -120,7 +122,27 @@ public class QrcodeAPI extends BaseAPI{
 								.addParameter(PARAM_ACCESS_TOKEN, API.accessToken(access_token))
 								.setEntity(new StringEntity(json,Charset.forName("utf-8")))
 								.build();
-		return LocalHttpClient.executeJsonResult(httpUriRequest,QrcodeTicket.class);
+		CloseableHttpResponse httpResponse = LocalHttpClient.execute(httpUriRequest);
+		return getImage(httpResponse);
+	}
+
+	private static BufferedImage getImage(CloseableHttpResponse httpResponse) {
+		try {
+			int status = httpResponse.getStatusLine().getStatusCode();
+			if (status == 200) {
+				byte[] bytes = EntityUtils.toByteArray(httpResponse.getEntity());
+				return ImageIO.read(new ByteArrayInputStream(bytes));
+			}
+		} catch (IOException e) {
+			logger.error("", e);
+		} finally {
+			try {
+				httpResponse.close();
+			} catch (IOException e) {
+				logger.error("", e);
+			}
+		}
+		return null;
 	}
 
 }
